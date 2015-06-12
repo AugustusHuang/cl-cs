@@ -4,43 +4,105 @@
 
 (in-package :cl-cs)
 
+;;; I decide to use CSR format instead... Should be space compact.
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defstruct sparse-matrix
-    (values (make-array '(0 0)) :type matrix)
-    (present-p (make-array '(0 0) :element-type '(mod 2)))
-    (sparsity 0 :type fixnum)
-    (capacity 0 :type fixnum)))
+    (values (make-array 0) :type simple-array)
+    (col-index (make-array 0 :element-type 'fixnum) :type simple-array)
+    (row-ptr (make-array 0 :element-type 'fixnum) :type simple-array))
 
-;;; Don't use make-sparse-matrix, use this instead!
-(declaim (inline make-sparse-matrix-with-element))
-(defun make-sparse-matrix-with-element (row column &key (element-type t))
-  (make-sparse-matrix
-   :values (make-array `(,row ,column) :element-type element-type)
-   :present-p (make-array `(,row ,column) :element-type (quote (mod 2)) :initial-element 0)
-   :capacity (* row column)))
+  (defstruct adjustable-sparse-matrix
+    (values (make-array 0 :adjustable t))
+    (col-index (make-array 0 :element-type 'fixnum :adjustable t))
+    (row-ptr (make-array 0 :element-type 'fixnum :adjustable t))))
+
+(defun list-dimensions (list depth)
+  "Counts the dimension of a list."
+  (loop repeat depth
+       collect (length list)
+       do (setf list (car list))))
+
+(defun list-to-array (list depth)
+  "Makes an array from a given list."
+  (make-array (list-dimensions list depth) :initial-contents list))
+
+(defun list-to-array-adjustable (list depth)
+  "Makes an adjustable array from a given list."
+  (make-array (list-dimensions list depth) :initial-contents list :adjustable t))
+
+;;; Transform a matrix into a sparse matrix.
+(defun make-sparse-matrix-with-matrix (matrix)
+  "Make function of a sparse matrix with a generic matrix."
+  (declare (type matrix matrix))
+  (let ((row (array-dimension matrix 0))
+	(col (array-dimension matrix 1))
+	(v-length 0)
+	(values-list ())
+	(index-list ())
+	(ptr-list ()))
+    (loop for i from 0 to (1- row) do
+	 (setf v-length (length values-list))
+	 (loop for j from 0 to (1- col) do
+	      (let ((val (aref matrix i j)))
+		(if (/= 0 val)
+		    (progn
+		      (push val values-list)
+		      (push j index-list)))))
+	 (push v-length ptr-list))
+    (push (length index-list) ptr-list)
+    (make-sparse-matrix :values (list-to-array (reverse values-list) 1)
+			:col-index (list-to-array (reverse index-list) 1)
+			:row-ptr (list-to-array (reverse ptr-list) 1))))
+
+(defun make-adjustable-sparse-matrix-with-matrix (matrix)
+  "Make function of an adjustable sparse matrix with a generic matrix."
+  (declare (type matrix matrix))
+  (let ((row (array-dimension matrix 0))
+	(col (array-dimension matrix 1))
+	(v-length 0)
+	(values-list ())
+	(index-list ())
+	(ptr-list ()))
+    (loop for i from 0 to (1- row) do
+	 (setf v-length (length values-list))
+	 (loop for j from 0 to (1- col) do
+	      (let ((val (aref matrix i j)))
+		(if (/= 0 val)
+		    (progn
+		      (push val values-list)
+		      (push j index-list)))))
+	 (push v-length ptr-list))
+    (push (length index-list) ptr-list)
+    (make-adjustable-sparse-matrix :values (list-to-array-adjustable (reverse values-list) 1)
+			:col-index (list-to-array-adjustable (reverse index-list) 1)
+			:row-ptr (list-to-array-adjustable (reverse ptr-list) 1))))
 
 (defun aref-sparse-matrix (smat row column)
-  "Returns the (row, column)th item in the sparse-matrix."
+  "Aref function of a sparse matrix."
   (declare (type sparse-matrix smat)
 	   (type fixnum row column))
-  (aref (sparse-matrix-values smat) row column))
+  (let ((row-start (aref (sparse-matrix-row-ptr smat) row))
+	(row-end (aref (sparse-matrix-row-ptr smat) (1+ row))))
+    (loop for i from row-start to (1- row-end) do
+	 (if (= column (aref (sparse-matrix-col-index smat) i))
+	     (return (aref (sparse-matrix-values smat) i))))
+    0))
 
-(defun (setf aref-sparse-matrix) (smat row column value)
-  "Sets the (row, column)th item in the sparse-matrix with 'value'."
-  (declare (type sparse-matrix smat)
+(defun aref-adjustable-sparse-matrix (smat row column)
+  "Aref function of an adjustable sparse matrix."
+  (declare (type adjustable-sparse-matrix smat)
 	   (type fixnum row column))
-  (progn
-    (setf (aref (sparse-matrix-values smat) row column) value
-	  (aref (sparse-matrix-present-p smat) row column) 1)
-    (incf (sparse-matrix-sparsity smat))))
+  (let ((row-start (aref (adjustable-sparse-matrix-row-ptr smat) row))
+	(row-end (aref (adjustable-sparse-matrix-row-ptr smat) (1+ row))))
+    (loop for i from row-start to (1- row-end) do
+	 (if (= column (aref (adjustable-sparse-matrix-col-index smat) i))
+	     (return (aref (adjustable-sparse-matrix-values smat) i))))
+    0))
 
-(defun resize-sparse-matrix (smat row column)
-  "Removes the (row, column)th item in the sparse-matrix."
-  (declare (type sparse-matrix smat))
-  (progn
-    (setf (aref (sparse-matrix-values smat) row column) 0
-	  (aref (sparse-matrix-present-p smat) index) 0)
-    (decf (sparse-matrix-sparsity smat))))
+(defun (setf aref-adjustable-sparse-matrix) (smat row column value)
+  "(setf aref) function of an adjustable sparse matrix."
+  (declare (type adjustable-sparse-matrix smat)
+	   (type fixnum row column)))
 
 (defun transpose-sparse-matrix (smat)
   "Transposes a sparse-matrix."
