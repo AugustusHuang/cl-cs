@@ -92,7 +92,36 @@
 (defun transpose-sparse-matrix (smat)
   "Transpose function of a sparse matrix."
   (declare (type sparse-matrix smat))
-  (let (())))
+  (let* ((row (1- (array-dimension (sparse-matrix-row-ptr smat) 0)))
+	 ;; Since we know transposition won't change slots...
+	 (vout (make-array (length sparse-matrix-values smat) :initial-element 0))
+	 (jout (make-array (length vout) :initial-element 0))
+	 (temp1 0)
+	 (temp2 0)
+	 (iout (make-array (1+ row) :initial-element 0)))
+    (loop for i from 0 to (1- row) do
+	 (let ((row-start (aref (sparse-matrix-row-ptr smat) i))
+	       (row-end (aref (sparse-matrix-row-ptr smat) (1+ i))))
+	   (loop for j from row-start to (1- row-end) do
+		(setf temp1 (incf (aref (sparse-matrix-col-index smat) j)))
+		(incf (aref iout temp)))))
+    (loop for i from 0 to (1- row) do
+	 (incf (aref iout (1+ i)) (aref iout i)))
+    (loop for i from 0 to (1- row) do
+	 (let ((row-start (aref (sparse-matrix-row-ptr smat) i))
+	       (row-end (aref (sparse-matrix-row-ptr smat) (1+ i))))
+	   (loop for j from row-start to (1- row-end) do
+		(setf temp1 (aref (sparse-matrix-col-index smat))
+		      temp2 (aref iout temp1)
+		      (aref vout temp2) (sparse-matrix-values j)
+		      (aref jout temp2) i
+		      (aref iout temp1) (incf temp2)))))
+    (loop for i from (1- row) downto 0 do
+	 (setf (aref iout (1+ i) (aref iout i))))
+    (make-sparse-matrix :values vout
+			:col-index jout
+			:row-ptr iout
+			:cols row)))
 
 (defun sparse-*-2 (smat1 smat2)
   "Helper function of general sparse-*, size mismatch won't be checked."
@@ -182,9 +211,23 @@
   "Returns the multiplication of a sparse matrix and a vector."
   (declare (type sparse-matrix smat)
 	   (type vector vec))
-  )
+  (let* ((row (1- (array-dimension (sparse-matrix-row-ptr smat) 0)))
+	 (len (length vec))
+	 (out (make-array row :initial-element 0)))
+    (if (/= row len)
+	(error "size mismatch")
+	(loop for i from 0 to (1- row) do
+	     (let ((temp 0)
+		   (row-start (aref (sparse-matrix-row-ptr smat) i))
+		   (row-end (aref (sparse-matrix-row-ptr smat) (1+ i))))
+	       (loop for j from row-start to (1- row-end) do
+		    (incf temp (* (aref (sparse-matrix-values smat) j)
+				  (aref vec (aref (sparse-matrix-col-index smat) j)))))
+	       (setf (aref out i) temp))))
+    out))
 
 (defun sparse-matrix-rank (smat)
   "Returns the rank of a sparse matrix."
   (declare (type sparse-matrix smat))
-  )
+  (let* ((row (1- (array-dimension (sparse-matrix-row-ptr smat) 0))))
+    ))
