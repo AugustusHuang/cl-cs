@@ -12,6 +12,20 @@
   "2D array with equal dimensions."
   `(array ,type (,x ,x)))
 
+(defun list-dimensions (list depth)
+  "Counts the dimension of a list."
+  (loop repeat depth
+       collect (length list)
+       do (setf list (car list))))
+
+(defun list-to-array (list depth)
+  "Makes an array from a given list."
+  (make-array (list-dimensions list depth) :initial-contents list))
+
+(defun 1d-array-to-list (array)
+  "Makes a list from an 1-dimensional array."
+  (loop for i below (array-dimension array 0) collect (aref array i)))
+
 (defun random-array (length start end)
   "Returns an array of fixnums of 'length', ranging from 'start' to 'end'."
   (declare (type fixnum length start end)
