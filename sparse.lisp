@@ -133,15 +133,51 @@
 	 (work (make-array m1-col :initial-element 0))
 	 ;; And iout will have the same length with m1-row.
 	 (iout (make-array m1-row :initial-element 0))
-	 ;; They will be casted into arrays at last.
-	 (jout ())
-	 (vout ())
+	 ;; They will be cropped into simple arrays at last.
+	 (jout (make-array (+ m1-row m2-col) :initial-element 0))
+	 (vout (make-array (+ m1-row m2-col) :initial-element 0))
 	 (len 0))
     (loop for i from 0 to (1- m1-row) do
 	 (let ((row-start (aref (sparse-matrix-row-ptr smat1) i))
-	       (row-end (aref (sparse-matrix-row-ptr smat2) (1+ i))))
+	       (row-end (aref (sparse-matrix-row-ptr smat1) (1+ i))))
 	   (loop for j from row-start to (1- row-end) do
-		(let (())))))))
+		(let* ((temp1 (aref (sparse-matrix-col-index smat1) j))
+		       (temp2 (aref (sparse-matrix-values smat1) j))
+		       (row2-start (aref (sparse-matrix-row-ptr smat2) temp2))
+		       (row2-end (aref (sparse-matrix-row-ptr smat2) (1+ temp2))))
+		  (loop for k from row2-start to (1- row2-end) do
+		       (let* ((temp3 (aref (sparse-matrix-col-index smat2) k))
+			      (temp4 (aref work temp3)))
+			 (if (= 0 temp4)
+			     (progn
+			       (incf len)
+			       (setf (aref work temp3) len)
+			       (if (>= (1- len) (length jout))
+				   (setf jout (adjust-array jout (* 2 (length jout)))
+					 vout (adjust-array vout (* 2 (length vout)))
+					 (aref jout (1- len)) temp3
+					 (aref vout (1- len)) (* (aref (sparse-matrix-values smat2) k)
+								 temp1))
+				   (setf (aref jout (1- len)) temp3
+					 (aref vout (1- len)) (* (aref (sparse-matrix-values smat2) k)
+								 temp1))))
+			     (if (>= temp4 (length vout))
+				 (progn
+				   (setf vout (adjust-array vout (* 2 (length vout))))
+				   (incf (aref vout temp4) (* (aref (sparse-matrix-values smat2) k)
+							      temp1)))
+				 (incf (aref vout temp4) (* (aref (sparse-matrix-values smat2) k)
+							    temp1))))))))
+	   (loop for j from (aref iout i) to (1- len) do
+		(setf (aref work (aref jout j)) 0))))
+    (setf (aref iout (1+ i)) (1+ len))
+    ;; Since there will be no 0s in vout,
+    ;; we are safe to remove them totally...
+    ;; And then jout should have the same length.
+    (make-sparse-matrix :values (setf vout (ignore-trailing-zero vout))
+			:col-index (adjust-array jout (length vout))
+			:row-ptr iout
+			:cols m2-col)))
 
 (defun sparse-+-2 (smat1 smat2)
   "Helper function of general sparse-+."
@@ -151,8 +187,8 @@
 	 (m2-col (sparse-matrix-cols smat2))
 	 (work (make-array m1-col :initial-element 0))
 	 (iout (make-array m1-row :initial-element 0))
-	 (jout ())
-	 (vout ())
+	 (jout (make-array (+ m1-row m2-col) :initial-element 0))
+	 (vout (make-array (+ m1-row m2-col) :initial-element 0))
 	 (len 0))
     (loop for i from 0 to (1- m1-row) do
 	 (let ((row-start (aref (sparse-matrix-row-ptr smat1) i))
@@ -160,24 +196,36 @@
 	   (loop for j from row-start to (1- row-end) do
 		(let ((col (aref (sparse-matrix-col-index smat1) j)))
 		  (incf len)
-		  (push col jout)
-		  (push (aref (sparse-matrix-values smat1) j) vout)
-		  (setf (aref work j) len)))
+		  (if (> len (length jout))
+		      (setf jout (adjust-array jout (* 2 (length jout)))
+			    vout (adjust-array vout (* 2 (length vout)))
+			    (aref jout (1- len)) col
+			    (aref vout (1- len)) (aref (sparse-matrix-values smat1) j))
+		      (setf (aref jout (1- len)) col
+			    (aref vout (1- len)) (aref (sparse-matrix-values smat1) j)))
+		  (setf (aref work col) (1- len))))
 	   (loop for j from row-start to (1- row-end) do
 		(let* ((col (aref (sparse-matrix-col-index smat2) j))
 		       (pos (aref work col)))
 		  (if (= pos 0)
 		      (progn
 			(incf len)
-			(push col jout)
-			(push (aref (sparse-matrix-values smat2) j) vout)
-			(setf (aref work j) len))
-		      (incf (nth (- (length vout) pos) vout) (aref (sparse-matrix-values smat2) j)))))
+			(if (> len (length jout))
+			    (setf jout (adjust-array jout (* 2 (length jout)))
+				  vout (adjust-array vout (* 2 (length vout)))
+				  (aref jout (1- len)) col
+				  (aref vout (1- len)) (aref (sparse-matrix-values smat2) j)
+				  (aref work col) (1- len))))
+		      (if (>= pos (length vout))
+			  (progn
+			    (setf vout (adjust-array vout (* 2 (length vout))))
+			    (incf (aref vout pos) (aref (sparse-matrix-values smat2) j)))
+			  (incf (aref vout pos) (aref (sparse-matrix-values smat2) j))
 	   (loop for k from row-start to len do
 		(setf (aref work (nth (- (length jout) k) jout)) 0))
 	   (setf (aref iout (1+ i)) (1+ len))))
-    (make-sparse-matrix :values (list-to-array (reverse vout) 1)
-			:col-index (list-to-array (reverse jout) 1)
+    (make-sparse-matrix :values (setf vout (ignore-trailing-zero vout))
+			:col-index (adjust-array jout (length vout))
 			:row-ptr iout
 			:cols m2-col)))
 
@@ -225,9 +273,3 @@
 				  (aref vec (aref (sparse-matrix-col-index smat) j)))))
 	       (setf (aref out i) temp))))
     out))
-
-(defun sparse-matrix-rank (smat)
-  "Returns the rank of a sparse matrix."
-  (declare (type sparse-matrix smat))
-  (let* ((row (1- (array-dimension (sparse-matrix-row-ptr smat) 0))))
-    ))

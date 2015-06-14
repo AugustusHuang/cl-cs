@@ -26,6 +26,15 @@
   "Makes a list from an 1-dimensional array."
   (loop for i below (array-dimension array 0) collect (aref array i)))
 
+(defun ignore-trailing-zero (array)
+  "Removes an array's trailing 0s and returns a new array, assuming 0 will only appear on the tail."
+  (declare (type vector array))
+  (let ((len 0))
+    (dovec (item array)
+      (if (/= item 0)
+	  (incf len)
+	  (return-from ignore-trailing-zero (adjust-array array len))))))
+
 (defun random-array (length start end)
   "Returns an array of fixnums of 'length', ranging from 'start' to 'end'."
   (declare (type fixnum length start end)
@@ -57,16 +66,9 @@
   "Sequence version of 'doxxx' macros."
   `(map nil #'(lambda (,n) ,@body) ,seq))
 
-(defun map-vec (fn vector &key (start 0) end)
-  "Helper function of dovec."
-  (loop for i from start below (or end (length vector))
-       do (funcall fn (aref vector-var index))))
-
-(defmacro dovec ((var vector &key (start 0) end) &body body)
+(defmacro dovec ((var vector) &body body)
   "Vector version of 'doxxx' macros."
-  `(block nil
-     (map-vec #'(lambda (,var) ,@body)
-	      ,vector :start start :end end)))
+  `(map nil #'(lambda (,var) ,@body) ,vector))
 
 (defun matrix-invert (matrix)
   "Returns the inverse matrix of a given matrix."
