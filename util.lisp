@@ -180,4 +180,7 @@
 (defun vector-norm (vec)
   "Returns the norm of a vector."
   (declare (type vector vec))
-  )
+  (let ((sum 0))
+    (loop for i from 0 to (1- (length vec)) do
+	 (incf sum (* (aref vec i) (aref vec i))))
+    (sqrt sum)))

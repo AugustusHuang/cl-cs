@@ -273,3 +273,12 @@
 				  (aref vec (aref (sparse-matrix-col-index smat) j)))))
 	       (setf (aref out i) temp))))
     out))
+
+(defun sparse-matrix*const (smat const)
+  "Returns the multiplication of a sparse matrix and a constant."
+  (declare (type sparse-matrix smat)
+	   (type fixnum const))
+  (let ((v-length (length (sparse-matrix-values smat))))
+    (loop for i from 0 to (1- v-length) do
+	 (setf (aref (sparse-matrix-values smat) i)
+	       (* (aref (sparse-matrix-values smat) i) const)))))
