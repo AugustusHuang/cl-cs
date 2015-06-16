@@ -177,10 +177,16 @@
   (declare (type matrix matrix))
   )
 
-(defun vector-norm (vec)
+(defun vector-norm (vec &key (p 2))
   "Returns the norm of a vector."
   (declare (type vector vec))
   (let ((sum 0))
     (loop for i from 0 to (1- (length vec)) do
-	 (incf sum (* (aref vec i) (aref vec i))))
-    (sqrt sum)))
+	 (incf sum (expt (aref vec i) p)))
+    (expt sum (/ 1 p))))
+
+(defun vector-abs (vec)
+  "Vector version of abs."
+  (declare (type vector vec))
+  (loop for i from 0 to (1- (length vec)) do
+       (setf (aref vec i) (abs (aref vec i)))))
