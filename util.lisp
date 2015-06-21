@@ -178,11 +178,19 @@
   )
 
 (defun vector-norm (vec &key (p 2))
-  "Returns the norm of a vector."
+  "Norm function of a general vector."
   (declare (type vector vec))
   (let ((sum 0))
     (loop for i from 0 to (1- (length vec)) do
 	 (incf sum (expt (aref vec i) p)))
+    (expt sum (/ 1 p))))
+
+(defun sparse-vector-norm (svec &key (p 2))
+  "Norm function of a sparse vector."
+  (declare (type sparse-vector svec))
+  (let ((sum 0))
+    (loop for i from 0 to (1- (length (sparse-vector-index svec))) do
+	 (incf sum (expt (aref (sparse-vector-values svec) i) p)))
     (expt sum (/ 1 p))))
 
 (defun vector-abs (vec)
@@ -190,3 +198,9 @@
   (declare (type vector vec))
   (loop for i from 0 to (1- (length vec)) do
        (setf (aref vec i) (abs (aref vec i)))))
+
+(defun sparse-vector-abs (svec)
+  "Sparse vector version of abs."
+  (declare (type sparse-vector svec))
+  (loop for i from 0 to (1- (length (sparse-vector-index svec))) do
+       (setf (aref (sparse-vector-values svec) i) (abs (aref (sparse-vector-values svec) i)))))

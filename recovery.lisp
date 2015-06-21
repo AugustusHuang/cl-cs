@@ -19,16 +19,20 @@
   (declare (type vector vec))
   )
 
-(defun stagewise-omp (smat vec &key (stages 10) (err 1e-5) (sens 0.5))
+(defun least-square (mat vec &key (stages -1))
+  "Iterative Least Square method for solving linear equations."
+  )
+
+(defun stagewise-omp (smat svec &key (stages 10) (err 1e-5) (sens 0.5))
   "Stagewise orthogonal matching pursuit, in Sparse Solution of Underdetermined
 Linear Equations by Stagewise Orthogonal Matching Pursuit by D. L. Donoho,
 Y. Tsaig, I. Drori and J-L. Starck."
   (declare (type sparse-matrix smat)
-	   (type vector vec))
-  (let ((len (length vec))
+	   (type sparse-vector svec))
+  (let ((len (sparse-vector-len vec))
 	(stage 1)
-	(residual vec)
-	(norm (vector-norm vec))
+	(residual svec)
+	(norm (vector-norm svec))
 	(active ())
 	(x-i ())
 	(corr 0))
