@@ -196,11 +196,56 @@
 (defun vector-abs (vec)
   "Vector version of abs."
   (declare (type vector vec))
-  (loop for i from 0 to (1- (length vec)) do
-       (setf (aref vec i) (abs (aref vec i)))))
+  (let* ((len (length vec))
+	 (out (make-array len :initial-element 0)))
+    (loop for i from 0 to (1- len) do
+	 (setf (aref out i) (abs (aref vec i))))
+    out))
 
 (defun sparse-vector-abs (svec)
   "Sparse vector version of abs."
   (declare (type sparse-vector svec))
-  (loop for i from 0 to (1- (length (sparse-vector-index svec))) do
-       (setf (aref (sparse-vector-values svec) i) (abs (aref (sparse-vector-values svec) i)))))
+  (let* ((len (sparse-vector-len svec))
+	 (vlen (length (sparse-vector-index svec)))
+	 (out (make-sparse-vector :values (make-array vlen :initial-element 0)
+				  :index (make-array vlen :initial-element 0)
+				  :len len)))
+    (loop for i from 0 to (1- vlen) do
+	 (setf (aref (sparse-vector-values out) i)
+	       (abs (aref (sparse-vector-values svec) i))
+	       (aref (sparse-vector-index out) i)
+	       (aref (sparse-vector-index svec) i)))))
+
+(defun vector-sign (vec)
+  "Vector version of sign function."
+  (declare (type vector vec))
+  (let* ((len (length vec))
+	 (out (make-array len :initial-element 0)))
+    (loop for i from 0 to (1- (length vec)) do
+	 (if (> (aref vec i) 0)
+	     (setf (aref out i) 1)
+	     (if (< (aref vec i) 0)
+		 (setf (aref out i) -1)
+		 (setf (aref out i) 0))))
+    out))
+
+(defun sparse-vector-sign (svec)
+  "Sparse vector version of sign function."
+  (declare (type sparse-vector svec))
+  (let* ((len (sparse-vector-len svec))
+	 (vlen (length (sparse-vector-index svec)))
+	 (out (make-sparse-vector :values (make-array vlen :initial-element 0)
+				  :index (make-array vlen :initial-element 0)
+				  :len len)))
+    (loop for i from 0 to (1- vlen) do
+	 (if (> (aref (sparse-vector-values svec) i) 0)
+	     (setf (aref (sparse-vector-values out) i)
+		   1
+		   (aref (sparse-vector-index out) i)
+		   (aref (sparse-vector-index svec) i))
+	     (setf (aref (sparse-vector-values out) i)
+		   -1
+		   (aref (sparse-vector-index out) i)
+		   (aref (sparse-vector-index svec) i))))
+    out))
+

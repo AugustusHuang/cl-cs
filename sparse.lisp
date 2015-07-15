@@ -20,8 +20,7 @@
 ;;; Transform a matrix into a sparse matrix.
 (defun make-sparse-matrix-with-matrix (matrix)
   "Make function of a sparse matrix with a generic matrix."
-  (declare (type matrix matrix)
-	   (optimize speed))
+  (declare (type matrix matrix))
   (let ((row (array-dimension matrix 0))
 	(col (array-dimension matrix 1))
 	(v-length 0)
@@ -46,8 +45,7 @@
 ;;; Transform a vector into a sparse vector.
 (defun make-sparse-vector-with-vector (vector)
   "Make function of a sparse vector with a generic vector."
-  (declare (type vector vector)
-	   (optimize speed))
+  (declare (type vector vector))
   (let ((len (length vector))
 	(values ())
 	(index ()))
@@ -64,8 +62,7 @@
 (defun aref-sparse-matrix (smat row column)
   "Aref function of a sparse matrix."
   (declare (type sparse-matrix smat)
-	   (type fixnum row column)
-	   (optimize speed))
+	   (type fixnum row column))
   (let ((row-start (aref (sparse-matrix-row-ptr smat) row))
 	(row-end (aref (sparse-matrix-row-ptr smat) (1+ row))))
     (loop for i from row-start to (1- row-end) do
@@ -76,8 +73,7 @@
 (defun aref-sparse-vector (svec index)
   "Aref function of a sparse vector."
   (declare (type sparse-vector svec)
-	   (type fixnum index)
-	   (optimize speed))
+	   (type fixnum index))
   (loop for i from 0 to (1- (length (sparse-vector-index svec))) do
        (if (= index (aref (sparse-vector-index svec) i))
 	   (return-from aref-sparse-vector (aref (sparse-vector-values svec) i))))
@@ -86,8 +82,7 @@
 (defun (setf aref-sparse-matrix) (value smat row column)
   "(setf aref) function of a sparse matrix."
   (declare (type sparse-matrix smat)
-	   (type fixnum row column)
-	   (optimize speed))
+	   (type fixnum row column))
   (let ((row-start (aref (sparse-matrix-row-ptr smat) row))
 	(row-end (aref (sparse-matrix-row-ptr smat) (1+ row))))
     (loop for i from row-start to (1- row-end) do
@@ -128,8 +123,7 @@
 (defun (setf aref-sparse-vector) (value svec index)
   "(setf aref) function of a sparse vector."
   (declare (type sparse-vector svec)
-	   (type fixnum index)
-	   (optimize speed))
+	   (type fixnum index))
   (loop for i from 0 to (1- (length (sparse-vector-index svec))) do
        (let ((ind (aref (sparse-vector-index svec) i)))
 	 (if (<= index ind)
@@ -158,8 +152,7 @@
 
 (defun transpose-sparse-matrix (smat)
   "Transpose function of a sparse matrix."
-  (declare (type sparse-matrix smat)
-	   (optimize speed))
+  (declare (type sparse-matrix smat))
   (let* ((row (1- (length (sparse-matrix-row-ptr smat))))
 	 ;; Since we know transposition won't change slots...
 	 (vout (make-array (length sparse-matrix-values smat) :initial-element 0))
@@ -193,8 +186,7 @@
 
 (defun sparse-m-*-2 (smat1 smat2)
   "Helper function of general sparse matrix multiplication, size mismatch won't be checked."
-  (declare (type sparse-matrix smat1 smat2)
-	   (optimize speed))
+  (declare (type sparse-matrix smat1 smat2))
   (let* ((m1-row (1- (length (sparse-matrix-row-ptr smat1))))
 	 (m1-col (sparse-matrix-cols smat1))
 	 (m2-col (sparse-matrix-cols smat2))
@@ -250,8 +242,7 @@
 
 (defun sparse-m-+-2 (smat1 smat2)
   "Helper function of general sparse matrix addition."
-  (declare (type sparse-matrix smat1 smat2)
-	   (optimize speed))
+  (declare (type sparse-matrix smat1 smat2))
   (let* ((m1-row (1- (length (sparse-matrix-row-ptr smat1))))
 	 (m1-col (sparse-matrix-cols smat1))
 	 (m2-col (sparse-matrix-cols smat2))
@@ -301,15 +292,13 @@
 
 (defun negative-sparse-matrix (smat)
   "Negating function of a sparse matrix."
-  (declare (type sparse-matrix smat)
-	   (optimize speed))
+  (declare (type sparse-matrix smat))
   (loop for i from 0 to (1- (length (sparse-matrix-values smat))) do
        (setf (aref (sparse-matrix-values smat) i) (- (aref (sparse-matrix-values smat) i)))))
 
 (defun negative-sparse-vector (svec)
   "Negating function of a sparse vector."
-  (declare (type sparse-vector svec)
-	   (optimize speed))
+  (declare (type sparse-vector svec))
   (loop for i from 0 to (1- (length (sparse-vector-values svec))) do
        (setf (aref (sparse-vector-values svec) i) (- (aref (sparse-vector-values svec) i)))))
 
@@ -335,8 +324,7 @@
 
 (defun sparse-v-+-2 (svec1 svec2)
   "Helper function of general sparse vector addition."
-  (declare (type sparse-vector svec1 svec2)
-	   (optimize speed))
+  (declare (type sparse-vector svec1 svec2))
   (let ((len (sparse-vector-len svec1))
 	(ilen (length (sparse-vector-index svec2)))
 	(value-index (mapcar #'list
@@ -389,8 +377,7 @@
 (defun sparse-matrix-*-vector (smat vec)
   "Multiplication routine of a sparse matrix and a vector."
   (declare (type sparse-matrix smat)
-	   (type vector vec)
-	   (optimize speed))
+	   (type vector vec))
   (let* ((row (1- (array-dimension (sparse-matrix-row-ptr smat) 0)))
 	 (len (length vec))
 	 (out (make-array row :initial-element 0)))
@@ -405,8 +392,7 @@
 (defun sparse-matrix-*-sparse-vector (smat svec)
   "Mutiplication routine of a sparse matrix and a sparse vector."
   (declare (type sparse-matrix smat)
-	   (type sparse-vector svec)
-	   (optimize speed))
+	   (type sparse-vector svec))
   ;; Since only the columns with index corresponding to nonzero slots in the
   ;; sparse vector are contributing, ignore other columns.
   (let ((slen (sparse-vector-len svec))
@@ -424,8 +410,7 @@
 (defun matrix-*-sparse-vector (mat svec)
   "Multiplication routine of a general matrix and a sparse vector."
   (declare (type matrix mat)
-	   (type sparse-vector svec)
-	   (optimize speed))
+	   (type sparse-vector svec))
   (let ((slen (sparse-vector-len svec))
 	(mlen (array-dimension mat 0))
 	(out (make-array mlen :initial-element 0)))
@@ -438,8 +423,7 @@
 (defun sparse-matrix-*-const (smat const)
   "Multiplication routine of a sparse matrix and a constant."
   (declare (type sparse-matrix smat)
-	   (type fixnum const)
-	   (optimize speed))
+	   (type fixnum const))
   (let ((v-length (length (sparse-matrix-values smat))))
     (loop for i from 0 to (1- v-length) do
 	 (setf (aref (sparse-matrix-values smat) i)
@@ -447,8 +431,7 @@
 
 (defun sparse-inner-product (svec1 svec2)
   "Inner product of two sparse vectors."
-  (declare (type sparse-vector svec1 svec2)
-	   (optimize speed))
+  (declare (type sparse-vector svec1 svec2))
   (let* ((ilen1 (length (sparse-vector-index svec1)))
 	 (ilen2 (length (sparse-vector-index svec2)))
 	 (vout (make-array ilen1 :initial-element 0))
