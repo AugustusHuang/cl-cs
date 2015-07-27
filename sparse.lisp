@@ -205,8 +205,16 @@
 			:cols row)))
 
 (defun sparse-m-*-2 (smat1 smat2)
-  "Helper function of general sparse matrix multiplication, size mismatch won't be checked."
+  "Helper function of general sparse matrix multiplication."
   (declare (type sparse-matrix smat1 smat2))
+  (assert (= (1- (length (sparse-matrix-row-ptr smat2)))
+	     (sparse-matrix-cols smat1))
+	  (smat1 smat2)
+	  "Size mismatch, two matrices of size ~D-by-~D and ~D-by-~D."
+	  (1- (length (sparse-matrix-row-ptr smat1)))
+	  (sparse-matrix-cols smat1)
+	  (1- (length (sparse-matrix-row-ptr smat2)))
+	  (sparse-matrix-cols smat2))
   (let* ((m1-row (1- (length (sparse-matrix-row-ptr smat1))))
 	 (m1-col (sparse-matrix-cols smat1))
 	 (m2-col (sparse-matrix-cols smat2))
@@ -263,6 +271,14 @@
 (defun sparse-m-+-2 (smat1 smat2)
   "Helper function of general sparse matrix addition."
   (declare (type sparse-matrix smat1 smat2))
+  (assert (= (sparse-matrix-cols smat1)
+	     (1- (length (sparse-matrix-row-ptr smat2))))
+	  (smat1 smat2)
+	  "Size mismatch, two matrices of size ~D-by-~D and ~D-by-~D."
+	  (1- (length (sparse-matrix-row-ptr smat1)))
+	  (sparse-matrix-cols smat1)
+	  (1- (length (sparse-matrix-row-ptr smat2)))
+	  (sparse-matrix-cols smat2))
   (let* ((m1-row (1- (length (sparse-matrix-row-ptr smat1))))
 	 (m1-col (sparse-matrix-cols smat1))
 	 (m2-col (sparse-matrix-cols smat2))
@@ -345,6 +361,12 @@
 (defun sparse-v-+-2 (svec1 svec2)
   "Helper function of general sparse vector addition."
   (declare (type sparse-vector svec1 svec2))
+  (assert (= (sparse-vector-len svec1)
+	     (sparse-vector-len svec2))
+	  (svec1 svec2)
+	  "Size mismatch, two vectors of length ~D and ~D."
+	  (sparse-vector-len svec1)
+	  (sparse-vector-len svec2))
   (let ((len (sparse-vector-len svec1))
 	(ilen (length (sparse-vector-index svec2)))
 	(value-index (mapcar #'list
@@ -393,11 +415,16 @@
   (declare (type sparse-vector svec))
   (reduce #'sparse-v---2 (cons svec more)))
 
-;;; All functions won't check the size mismatch. Use them carefully.
 (defun sparse-matrix-*-vector (smat vec)
   "Multiplication routine of a sparse matrix and a vector."
   (declare (type sparse-matrix smat)
 	   (type vector vec))
+  (assert (= (sparse-matrix-cols smat)
+	     (length vec))
+	  (smat vec)
+	  "Size mismatch, matrix with ~D columns and vector of length ~D."
+	  (sparse-matrix-cols smat)
+	  (length vec))
   (let* ((row (1- (array-dimension (sparse-matrix-row-ptr smat) 0)))
 	 (len (length vec))
 	 (out (make-array row :initial-element 0)))
@@ -413,6 +440,12 @@
   "Mutiplication routine of a sparse matrix and a sparse vector."
   (declare (type sparse-matrix smat)
 	   (type sparse-vector svec))
+  (assert (= (sparse-matrix-cols smat)
+	     (sparse-vector-len svec))
+	  (smat svec)
+	  "Size mismatch, matrix with ~D columns and vector of length ~D."
+	  (sparse-matrix-cols smat)
+	  (sparse-vector-len svec))
   ;; Since only the columns with index corresponding to nonzero slots in the
   ;; sparse vector are contributing, ignore other columns.
   (let ((slen (sparse-vector-len svec))
@@ -431,6 +464,12 @@
   "Multiplication routine of a general matrix and a sparse vector."
   (declare (type matrix mat)
 	   (type sparse-vector svec))
+  (assert (= (array-dimension mat 1)
+	     (sparse-vector-len svec))
+	  (mat svec)
+	  "Size mismatch, matrix with ~D columns and vector of length ~D."
+	  (array-dimension mat 1)
+	  (sparse-vector-len svec))
   (let ((slen (sparse-vector-len svec))
 	(mlen (array-dimension mat 0))
 	(out (make-array mlen :initial-element 0)))
@@ -452,6 +491,12 @@
 (defun sparse-inner-product (svec1 svec2)
   "Inner product of two sparse vectors."
   (declare (type sparse-vector svec1 svec2))
+  (assert (= (sparse-vector-len svec1)
+	     (sparse-vector-len svec2))
+	  (svec1 svec2)
+	  "Size mismatch, two vectors of length ~D and ~D."
+	  (sparse-vector-len svec1)
+	  (sparse-vector-len svec2))
   (let* ((ilen1 (length (sparse-vector-index svec1)))
 	 (ilen2 (length (sparse-vector-index svec2)))
 	 (vout (make-array ilen1 :initial-element 0))

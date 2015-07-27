@@ -93,6 +93,12 @@
 (defun matrix-invert (matrix)
   "Returns the inverse matrix of a given matrix."
   (declare (type square-matrix matrix))
+  (assert (= (array-dimension matrix 0)
+	     (array-dimension matrix 1))
+	  (matrix)
+	  "Non-square ~D-by-~D matrix."
+	  (array-dimension matrix 0)
+	  (array-dimension matrix 1))
   (let* ((dim (array-dimension matrix 0))
 	 (l (make-array dim :initial-element 0))
 	 (m (make-array dim :initial-element 0))
@@ -178,16 +184,26 @@
 (defun matrix-determinant (matrix)
   "Returns the determinant of a given matrix."
   (declare (type matrix matrix))
+  (assert (= (array-dimension matrix 0)
+	     (array-dimension matrix 1))
+	  (matrix)
+	  "Non-square ~D-by-~D matrix."
+	  (array-dimension matrix 0)
+	  (array-dimension matrix 1))
   (second (multiple-value-list (matrix-invert matrix))))
 
 (defun inner-product (vector1 vector2)
   "Returns the inner-product of two vectors."
   (declare (type vector vector1)
 	   (type vector vector2))
+  (assert (= (array-dimension vector1 0)
+	     (array-dimension vector2 0))
+	  (vector1 vector2)
+	  "Size mismatch, vectors of length ~D and ~D."
+	  (array-dimension vector1 0)
+	  (array-dimension vector2 0))
   (let ((dim (array-dimension vector1 0))
 	(result 0))
-    (if (not (= dim (array-dimension vector2 0)))
-	     (error "vector size mismatch"))
     (loop for i from 0 to (- dim 1) do
 	 (incf result (* (svref vector1 i) (svref vector2 i))))
     result))
@@ -268,4 +284,3 @@
 		   (aref (sparse-vector-index out) i)
 		   (aref (sparse-vector-index svec) i))))
     out))
-
