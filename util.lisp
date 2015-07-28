@@ -33,21 +33,32 @@
   `(array ,type (,x ,x)))
 
 (defun list-dimensions (list depth)
-  "Counts the dimension of a list."
+  "List counterpart of function ARRAY-DIMENSIONS."
   (loop repeat depth
-       collect (length list)
-       do (setf list (car list))))
+     collect (length list)
+     do (setf list (car list))))
 
 (defun list-to-array (list depth)
-  "Makes an array from a given list."
+  "Make an array from a given list."
   (make-array (list-dimensions list depth) :initial-contents list))
 
 (defun 1d-array-to-list (array)
-  "Makes a list from an 1-dimensional array."
+  "Make a list from an 1-dimensional array."
   (loop for i below (array-dimension array 0) collect (aref array i)))
 
+(defun remove-by-position (index list)
+  "REMOVE function by index."
+  (loop for i in list
+     for j from 1 unless (= j (1+ index)) collect i))
+
+(defun insert (list index value)
+  "Insert VALUE before the INDEXth element in the list."
+  (let ((dis (1- index)))
+    (push value (cdr (nthcdr dis list)))
+    list))
+
 (defun ignore-trailing-zero (array)
-  "Removes an array's trailing 0s and returns a new array, assuming 0 will only appear on the tail."
+  "Remove an array's trailing 0s, assuming 0 will only appear on the tail."
   (declare (type vector array))
   (let ((len 0))
     (dovec (item array)

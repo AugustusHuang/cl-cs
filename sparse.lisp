@@ -141,34 +141,63 @@
 	 (incf (aref (sparse-matrix-row-ptr smat) j)))))
 
 (defun (setf aref-sparse-vector) (value svec index)
-  "(setf aref) function of a sparse vector."
+  "(SETF AREF) function of a sparse vector."
   (declare (type sparse-vector svec)
 	   (type fixnum index))
-  (loop for i from 0 to (1- (length (sparse-vector-index svec))) do
-       (let ((ind (aref (sparse-vector-index svec) i)))
-	 (if (<= index ind)
-	     ;; Just substitute it...
-	     (if (= index ind)
-		 (progn
-		   (setf (aref (sparse-vector-values svec) index) value)
-		   (return-from aref-sparse-vector))
-		 ;; The first time we meet a index greater than our goal.
-		 (let ((helper1 ())
-		       (helper2 ())
-		       (values-list (1d-array-to-list (sparse-vector-values svec)))
-		       (index-list (1d-array-to-list (sparse-vector-index svec))))
-		   (loop for j from 0 to (- i 2) do
-			(push (pop values-list) helper1)
-			(push (pop index-list) helper2))
-
-		   (push value helper1)
-		   (push index helper2)
-
-		   (loop for j from 0 to (1- i) do
-			(push (pop helper1) values-list)
-			(push (pop helper2) index-list))
-		   (setf (sparse-vector-values svec) (list-to-array values-list 1)
-			 (sparse-vector-index svec) (list-to-array index-list 1))))))))
+  (let ((index-array (sparse-vector-index svec))
+	(values (sparse-vector-values svec))
+	(len (sparse-vector-len svec))
+	(helper-list1 ())
+	(helper-list2 ()))
+    (assert (< index len)
+	    (value svec index)
+	    "Index ~D out of bounds of sparse vector ~A."
+	    index
+	    svec)
+    (loop for i from 0 to (1- (length index-array)) do
+	 (let ((ind (aref index-array i)))
+	   ;; There are chances that the last index is smaller than the index
+	   ;; of where we wanna change the value...
+	   (if (<= index ind)
+	       ;; If we meet a slot with non-zero value, substitute it or die.
+	       (if (= index ind)
+		   (if (/= value 0)
+		       (progn
+			 (setf (aref values index) value)
+			 (return-from aref-sparse-vector value))
+		       ;; Remove this slot from values and index.
+		       (progn
+			 (setf helper-list1
+			       (remove-by-position ind (1d-array-to-list values))
+			       helper-list2
+			       (remove-by-position ind (1d-array-to-list index-array))
+			       (sparse-vector-values svec)
+			       (list-to-array helper-list1 1)
+			       (sparse-vector-index svec)
+			       (list-to-array helper-list2 1))
+			 (return-from aref-sparse-vector value)))
+		   ;; The first time we meet a index greater than our goal.
+		   (if (/= value 0)
+		       ;; Add a new index and form a new values array.
+		       (progn
+			 (setf helper-list1
+			       (insert (1d-array-to-list values) i value)
+			       helper-list2
+			       (insert (1d-array-to-list index-array) i index)
+			       (sparse-vector-values svec)
+			       (list-to-array helper-list1 1)
+			       (sparse-vector-index svec)
+			       (list-to-array helper-list2 1))
+			 (return-from aref-sparse-vector value))
+		       ;; Since this is the first time index >= our place,
+		       ;; So there's no chance to change anything, we are done.
+		       (return-from aref-sparse-vector value))))))
+    ;; The biggest index is smaller than ours, append it and the value.
+    (setf helper-list1 (append (1d-array-to-list values) (list value))
+	  helper-list2 (append (1d-array-to-list index-array) (list index))
+	  (sparse-vector-values svec) (list-to-array helper-list1 1)
+	  (sparse-vector-index svec) (list-to-array helper-list2 1))
+    value))
 
 (defun transpose-sparse-matrix (smat)
   "Transpose function of a sparse matrix."
