@@ -2,25 +2,26 @@
 
 ;;;; Copyright (c) 2015 Huang Xuxing
 
-;;;; Permission is hereby granted, free of charge, to any person obtaining a copy
-;;;; of this software and associated documentation files (the "Software"), to deal
-;;;; in the Software without restriction, including without limitation the rights
-;;;; to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-;;;; copies of the Software, and to permit persons to whom the Software is
-;;;; furnished to do so, subject to the following conditions:
+;;;; Permission is hereby granted, free of charge, to any person obtaining
+;;;; a copy of this software and associated documentation files
+;;;; (the "Software"), to deal in the Software without restriction,
+;;;; including without limitation the rights to use, copy, modify, merge,
+;;;; publish, distribute, sublicense, and/or sell copies of the Software,
+;;;; and to permit persons to whom the Software is furnished to do so,
+;;;; subject to the following conditions:
 
-;;;; The above copyright notice and this permission notice shall be included in all
-;;;; copies or substantial portions of the Software.
+;;;; The above copyright notice and this permission notice shall be included
+;;;; in all copies or substantial portions of the Software.
 
 ;;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 ;;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-;;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-;;;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-;;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-;;;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-;;;; SOFTWARE.
+;;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+;;;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+;;;; ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+;;;; OTHER DEALINGS IN THE SOFTWARE.
+
 ;;;; General utilities useful in compressive sensing
-;;;; Date: June 7, 2015
 
 (in-package :cl-cs-util)
 
@@ -31,6 +32,20 @@
 (deftype square-matrix (&optional type x)
   "2D array with equal dimensions."
   `(array ,type (,x ,x)))
+
+(defun make-1-to-n-list (n)
+  "Helper function, generate a list from 1 to n inclusively."
+  (let ((out ()))
+    (loop for i from 1 to n do
+	 (push i out))
+    (reverse out)))
+
+(defun make-1-to-n-vector (n)
+  "Helper function, generate a vector from 1 to n inclusively."
+  (let ((out (make-array n :initial-element 0)))
+    (loop for i from 1 to n do
+	 (setf (svref out (1- i)) i))
+    out))
 
 (defun list-dimensions (list depth)
   "List counterpart of function ARRAY-DIMENSIONS."
@@ -218,11 +233,6 @@
     (loop for i from 0 to (- dim 1) do
 	 (incf result (* (svref vector1 i) (svref vector2 i))))
     result))
-
-(defun matrix-rank (matrix)
-  "Returns the rank of a matrix."
-  (declare (type matrix matrix))
-  )
 
 (defun vector-norm (vec &key (p 2))
   "Norm function of a general vector."
